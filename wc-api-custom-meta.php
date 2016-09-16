@@ -95,6 +95,15 @@ class Academe_Wc_Api_Custom_Meta
             10,
             3
         );
+
+        // add hook to save variation meta when accessed directly by variationID
+        // where product_type is undefined
+        add_action(
+            'woocommerce_api_process_product_meta_',
+            array('Academe_Wc_Api_Custom_Meta', 'saveVariationCustomMeta'),
+            10,
+            2
+        );
     }
 
     /**
@@ -107,6 +116,10 @@ class Academe_Wc_Api_Custom_Meta
 
         if (current_user_can('manage_woocommerce')) {
             $product_id = $product->id;
+
+            if ($product->is_type( 'variation' )){
+                $product_id = $product->get_variation_id();
+            }
 
             $all_meta = get_post_meta($product_id);
 
@@ -152,6 +165,9 @@ class Academe_Wc_Api_Custom_Meta
      * Update or create a product.
      */
     public static function updateCustomMeta($id, $data) {
+        // $call_name = "Academe_Wc_Api_Custom_Meta::updateCustomMeta($id)";
+        // if( WP_DEBUG ) error_log($call_name . ' start');
+
         // Create or update fields.
         if (!empty($data['custom_meta']) && is_array($data['custom_meta'])) {
             // Filter out protected fields.
@@ -193,6 +209,20 @@ class Academe_Wc_Api_Custom_Meta
     public static function updateVariationCustomMeta($id, $menu_order, $data) {
         Academe_Wc_Api_Custom_Meta::updateCustomMeta($id, $data);
     }
+
+    /**
+     * Save the meta for a product variation in legacy WOO API if the ID corresponds to a variation
+     */
+     public static function saveVariationCustomMeta($post_id, $data) {
+        // $call_name = "Academe_Wc_Api_Custom_Meta::saveVariationCustomMeta($post_id)";
+        // if( WP_DEBUG ) error_log($call_name . " start");
+        $post = get_post($post_id);
+        $post_type = $post->post_type;
+        // if( WP_DEBUG ) error_log($call_name . " post_type: ".serialize($post_type));
+        if( "product_variation" === $post_type){
+            Academe_Wc_Api_Custom_Meta::updateCustomMeta($post_id, $data);
+        }
+     }
 }
 
 Academe_Wc_Api_Custom_Meta::initialize();
